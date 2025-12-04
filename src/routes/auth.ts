@@ -7,6 +7,7 @@ import { User } from "../models/user.js";
 export async function authRoutes(fastify: FastifyInstance) {
   // 1) Start login: redirect to Google
   fastify.get("/google", async (request, reply) => {
+    console.log("google", request);
     if (!googleClient) {
       return reply.status(500).send({ error: "Google OAuth not configured" });
     }
