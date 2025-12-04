@@ -1,7 +1,7 @@
 // src/routes/auth.ts
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { googleClient } from "../config/googleClient.js";
+import { googleClient } from "../config/googleClient";
 import { User } from "../models/user.js";
 
 export async function authRoutes(fastify: FastifyInstance) {
@@ -34,7 +34,9 @@ export async function authRoutes(fastify: FastifyInstance) {
     if (error) {
       fastify.log.error({ error }, "Google OAuth error");
       const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
-      return reply.redirect(`${frontendUrl}/login?error=${encodeURIComponent(error)}`);
+      return reply.redirect(
+        `${frontendUrl}/login?error=${encodeURIComponent(error)}`
+      );
     }
 
     if (!code) {
@@ -75,7 +77,7 @@ export async function authRoutes(fastify: FastifyInstance) {
         user = await User.create({ email, name });
       } else if (user.name !== name) {
         // Update name if it changed
-        user.name = name;
+        user.name = name || "";
         await user.save();
       }
 
@@ -84,7 +86,7 @@ export async function authRoutes(fastify: FastifyInstance) {
 
       // Set httpOnly cookie and redirect to frontend
       const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
-      
+
       reply
         .setCookie("access_token", token, {
           httpOnly: true,

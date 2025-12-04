@@ -21,7 +21,8 @@ async function start() {
 
   // Register cookie plugin (for httpOnly cookies)
   await app.register(cookie, {
-    secret: process.env.COOKIE_SECRET || "your-cookie-secret-change-in-production",
+    secret:
+      process.env.COOKIE_SECRET || "your-cookie-secret-change-in-production",
   });
 
   // Register JWT plugin (for signing tokens)
@@ -49,6 +50,10 @@ async function start() {
   app.register(aiRoutes, { prefix: "/ai" });
   app.register(taskRoutes, { prefix: "/tasks" });
 
+  // Health check
+  app.get("/health", async () => {
+    return { status: "ok", uptime: process.uptime() };
+  });
   const port = Number(process.env.PORT) || 4000;
   const host = "0.0.0.0";
 
