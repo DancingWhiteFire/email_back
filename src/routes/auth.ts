@@ -32,7 +32,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     };
 
     if (error) {
-      fastify.log.error({ error }, "Google OAuth error");
+      (fastify.log as any).error({ error }, "Google OAuth error");
       const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
       return reply.redirect(
         `${frontendUrl}/login?error=${encodeURIComponent(error)}`
@@ -97,7 +97,7 @@ export async function authRoutes(fastify: FastifyInstance) {
         })
         .redirect(`${frontendUrl}/`);
     } catch (error) {
-      fastify.log.error(error);
+      (fastify.log as any).error(error);
       const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
       return reply.redirect(`${frontendUrl}/login?error=token_exchange_failed`);
     }
@@ -128,7 +128,7 @@ export async function authRoutes(fastify: FastifyInstance) {
         },
       });
     } catch (error) {
-      fastify.log.error(error);
+      (fastify.log as any).error(error);
       return reply.status(401).send({ user: null });
     }
   });

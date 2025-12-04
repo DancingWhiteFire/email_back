@@ -3,7 +3,7 @@ import fastify from "fastify";
 import cors from "@fastify/cors";
 import cookie from "@fastify/cookie";
 import jwt from "@fastify/jwt";
-import dotenv from "dotenv";
+import * as dotenv from "dotenv";
 import { connectDB } from "./config/db.js";
 import { authRoutes } from "./routes/auth.js";
 import { emailRoutes } from "./routes/email.js";
@@ -61,7 +61,7 @@ async function start() {
     await app.listen({ port });
     console.log(`🚀 Server listening on http://localhost:${port}`);
   } catch (err) {
-    app.log.error(err);
+    (app.log as any).error(err);
     process.exit(1);
   }
 }
