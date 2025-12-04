@@ -2,7 +2,7 @@
   "name": "server",
   "version": "1.0.0",
   "description": "",
-  "type": "node",
+  "type": "commonjs",
   "main": "index.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",

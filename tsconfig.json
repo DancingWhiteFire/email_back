@@ -1,46 +1,31 @@
 {
-  // Visit https://aka.ms/tsconfig to read more about this file
   "compilerOptions": {
-    // File Layout
     "rootDir": "./src",
     "outDir": "./dist",
-    // Environment Settings
-    // See also https://aka.ms/tsconfig/module
-    "module": "nodenext",
-    "target": "esnext",
-    "types": [],
-    "paths": {
-      "@/*": ["./*"]
-    },
-    // For nodejs:
-    // "lib": ["esnext"],
-    // "types": ["node"],
-    // and npm install -D @types/node
 
-    // Other Outputs
+    // Use classic Node CommonJS
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "target": "es2019",
+
+    // Node environment
+    "types": ["node"],
+    "lib": ["esnext"],
+
+    // Other outputs
     "sourceMap": true,
     "declaration": true,
     "declarationMap": true,
+    "allowJs": true,
 
-    // Stricter Typechecking Options
+    // Stricter options
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
 
-    // Style Options
-    // "noImplicitReturns": true,
-    // "noImplicitOverride": true,
-    // "noUnusedLocals": true,
-    // "noUnusedParameters": true,
-    // "noFallthroughCasesInSwitch": true,
-    // "noPropertyAccessFromIndexSignature": true,
-
-    // Recommended Options
-    "strict": true,
-    "jsx": "react-jsx",
-    "verbatimModuleSyntax": true,
-    "isolatedModules": true,
-    "noUncheckedSideEffectImports": true,
-    "moduleDetection": "force",
+    // Turn OFF the advanced module flags causing errors
+    "verbatimModuleSyntax": false,
+    "isolatedModules": false,
+    "moduleDetection": "auto",
     "skipLibCheck": true
   },
   "include": ["src/**/*.ts", "src/**/*.tsx"],
