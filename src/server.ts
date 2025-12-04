@@ -19,6 +19,10 @@ async function start() {
     bodyLimit: 1048576, // 1MB limit
   });
 
+  // Health check
+  app.get("/health", async () => {
+    return { status: "ok", uptime: process.uptime() };
+  });
   // Register cookie plugin (for httpOnly cookies)
   await app.register(cookie, {
     secret:
@@ -50,18 +54,14 @@ async function start() {
   app.register(aiRoutes, { prefix: "/ai" });
   app.register(taskRoutes, { prefix: "/tasks" });
 
-  // Health check
-  app.get("/health", async () => {
-    return { status: "ok", uptime: process.uptime() };
-  });
   const port = Number(process.env.PORT) || 4000;
   const host = "0.0.0.0";
 
   try {
-    await app.listen({ port });
-    console.log(`🚀 Server listening on http://localhost:${port}`);
+    await app.listen({ port, host });
+    console.log(`🚀 Server listening on http://${host}:${port}`);
   } catch (err) {
-    (app.log as any).error(err);
+    (app.log as any).error(err); // if TS complains about .error
     process.exit(1);
   }
 }
