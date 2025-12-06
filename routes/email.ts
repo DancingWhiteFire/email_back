@@ -1,31 +1,27 @@
 // src/routes/emails.ts
 import type { FastifyInstance } from "fastify";
 import { Types } from "mongoose";
-import { Email } from "../models/email.js";
-import { botCheck } from "../middleware/botCheck.js";
+import { Email } from "@/models/email.js";
+import { botCheck } from "@/middleware/botCheck.js";
 
 export async function emailRoutes(fastify: FastifyInstance) {
   // GET /emails?status=inbox
-  fastify.get(
-    "/",
-    { preHandler: [botCheck] },
-    async (request, reply) => {
-      const query = request.query as { status?: string; userId?: string };
-      const status = query.status ?? "inbox";
-      const userId = query.userId;
+  fastify.get("/", { preHandler: [botCheck] }, async (request, reply) => {
+    const query = request.query as { status?: string; userId?: string };
+    const status = query.status ?? "inbox";
+    const userId = query.userId;
 
-      if (!userId || !Types.ObjectId.isValid(userId)) {
-        reply.code(400).send({ error: "userId is required and must be valid" });
-        return;
-      }
-
-      const emails = await Email.find({ userId, status }).sort({
-        receivedAt: -1
-      });
-
-      reply.send(emails);
+    if (!userId || !Types.ObjectId.isValid(userId)) {
+      reply.code(400).send({ error: "userId is required and must be valid" });
+      return;
     }
-  );
+
+    const emails = await Email.find({ userId, status }).sort({
+      receivedAt: -1,
+    });
+
+    reply.send(emails);
+  });
 
   // POST /emails/:id/archive
   fastify.post(
