@@ -1,6 +1,5 @@
 {
   "compilerOptions": {
-    "rootDir": "./src",
     "outDir": "./dist",
 
     // Use classic Node CommonJS
@@ -30,8 +29,11 @@
 
     // JSX not really needed for backend, but harmless:
     "jsx": "react-jsx",
-    "strict": true
+    "strict": true,
+    "paths": {
+      "@/*": ["./*"]
+    }
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "include": ["**/*.ts", "**/*.d.ts"],
   "exclude": ["node_modules", "dist"]
 }

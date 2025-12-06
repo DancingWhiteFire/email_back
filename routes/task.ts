@@ -2,49 +2,45 @@
 import type { FastifyInstance } from "fastify";
 import { Types } from "mongoose";
 import { z } from "zod";
-import { botCheck } from "../middleware/botCheck.js";  
-import { validateBody } from "../middleware/validation.js";
-import { Task } from "../models/task.js";
+import { botCheck } from "@/middleware/botCheck.js";
+import { validateBody } from "@/middleware/validation.js";
+import { Task } from "@/models/task.js";
 
 const createTaskFromEmailSchema = z.object({
   title: z.string().min(1),
-  ownerId: z.string().refine((v) => Types.ObjectId.isValid(v), "Invalid ownerId"),
-  dueDate: z.string().datetime().optional()
+  ownerId: z
+    .string()
+    .refine((v) => Types.ObjectId.isValid(v), "Invalid ownerId"),
+  dueDate: z.string().datetime().optional(),
 });
 
 const updateTaskSchema = z.object({
   title: z.string().min(1).optional(),
   status: z.enum(["todo", "in-progress", "done"]).optional(),
-  dueDate: z.string().datetime().optional()
+  dueDate: z.string().datetime().optional(),
 });
 
 export async function taskRoutes(fastify: FastifyInstance) {
   // GET /tasks?ownerId=...
-  fastify.get(
-    "/",
-    { preHandler: [botCheck] },
-    async (request, reply) => {
-      const query = request.query as { ownerId?: string };
-      if (!query.ownerId || !Types.ObjectId.isValid(query.ownerId)) {
-        reply
-          .code(400)
-          .send({ error: "ownerId is required and must be valid" });
-        return;
-      }
-
-      const tasks = await Task.find({ ownerId: query.ownerId }).sort({
-        createdAt: -1
-      });
-
-      reply.send(tasks);
+  fastify.get("/", { preHandler: [botCheck] }, async (request, reply) => {
+    const query = request.query as { ownerId?: string };
+    if (!query.ownerId || !Types.ObjectId.isValid(query.ownerId)) {
+      reply.code(400).send({ error: "ownerId is required and must be valid" });
+      return;
     }
-  );
+
+    const tasks = await Task.find({ ownerId: query.ownerId }).sort({
+      createdAt: -1,
+    });
+
+    reply.send(tasks);
+  });
 
   // POST /tasks/from-email/:emailId
   fastify.post(
     "/from-email/:emailId",
     {
-      preHandler: [botCheck, validateBody(createTaskFromEmailSchema)]
+      preHandler: [botCheck, validateBody(createTaskFromEmailSchema)],
     },
     async (request, reply) => {
       const { emailId } = request.params as { emailId: string };
@@ -61,7 +57,7 @@ export async function taskRoutes(fastify: FastifyInstance) {
         title,
         ownerId,
         emailId,
-        ...(dueDate && { dueDate: new Date(dueDate) })
+        ...(dueDate && { dueDate: new Date(dueDate) }),
       });
 
       reply.code(201).send(task);
@@ -72,7 +68,7 @@ export async function taskRoutes(fastify: FastifyInstance) {
   fastify.patch(
     "/:id",
     {
-      preHandler: [botCheck, validateBody(updateTaskSchema)]
+      preHandler: [botCheck, validateBody(updateTaskSchema)],
     },
     async (request, reply) => {
       const { id } = request.params as { id: string };
@@ -99,23 +95,19 @@ export async function taskRoutes(fastify: FastifyInstance) {
   );
 
   // DELETE /tasks/:id
-  fastify.delete(
-    "/:id",
-    { preHandler: [botCheck] },
-    async (request, reply) => {
-      const { id } = request.params as { id: string };
-      if (!Types.ObjectId.isValid(id)) {
-        reply.code(400).send({ error: "Invalid task id" });
-        return;
-      }
-
-      const result = await Task.findByIdAndDelete(id);
-      if (!result) {
-        reply.code(404).send({ error: "Task not found" });
-        return;
-      }
-
-      reply.code(204).send();
+  fastify.delete("/:id", { preHandler: [botCheck] }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    if (!Types.ObjectId.isValid(id)) {
+      reply.code(400).send({ error: "Invalid task id" });
+      return;
     }
-  );
+
+    const result = await Task.findByIdAndDelete(id);
+    if (!result) {
+      reply.code(404).send({ error: "Task not found" });
+      return;
+    }
+
+    reply.code(204).send();
+  });
 }

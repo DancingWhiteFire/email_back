@@ -1,16 +1,16 @@
 // src/routes/ai.ts
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
-import { botCheck } from "../middleware/botCheck.js";
-import { validateBody } from "../middleware/validation.js";
+import { botCheck } from "@/middleware/botCheck.js";
+import { validateBody } from "@/middleware/validation.js";
 
 const summarizeSchema = z.object({
-  text: z.string().min(1)
+  text: z.string().min(1),
 });
 
 const draftSchema = z.object({
   threadContext: z.string().min(1),
-  tone: z.enum(["formal", "casual", "friendly", "short"]).default("short")
+  tone: z.enum(["formal", "casual", "friendly", "short"]).default("short"),
 });
 
 export async function aiRoutes(fastify: FastifyInstance) {
@@ -18,7 +18,7 @@ export async function aiRoutes(fastify: FastifyInstance) {
   fastify.post(
     "/summarize",
     {
-      preHandler: [botCheck, validateBody(summarizeSchema)]
+      preHandler: [botCheck, validateBody(summarizeSchema)],
     },
     async (request, reply) => {
       const { text } = request.body as z.infer<typeof summarizeSchema>;
@@ -34,7 +34,7 @@ export async function aiRoutes(fastify: FastifyInstance) {
   fastify.post(
     "/draft",
     {
-      preHandler: [botCheck, validateBody(draftSchema)]
+      preHandler: [botCheck, validateBody(draftSchema)],
     },
     async (request, reply) => {
       const { threadContext, tone } = request.body as z.infer<
