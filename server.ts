@@ -58,7 +58,7 @@ async function start() {
         const decoded = await request.jwtVerify<JwtPayload>();
         request.user = decoded;
       } catch (err) {
-        request.log.warn?.({ err }, "JWT verification failed");
+        console.log({ err }, "JWT verification failed");
         return reply.code(401).send({ error: "Unauthorized" });
       }
     }

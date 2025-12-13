@@ -81,6 +81,6 @@ export async function attachClientInfo(
     }).save();
   } catch (err) {
     // Never break the request if logging fails
-    request.log.error?.({ err }, "Failed to attach client info / save log");
+    console.log({ err }, "Failed to attach client info / save log");
   }
 }

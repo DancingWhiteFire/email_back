@@ -74,7 +74,7 @@ export async function botCheck(
     SUSPICIOUS_USER_AGENT_PATTERNS.some((re) => re.test(userAgent)) ||
     (!accept && !contentType)
   ) {
-    request.log.warn?.(
+    console.log(
       { clientIp, userAgent, accept, contentType },
       "Blocked suspicious client (UA / missing headers)"
     );
@@ -98,7 +98,7 @@ export async function botCheck(
     } else {
       current.count += 1;
       if (current.count > IP_MAX_REQUESTS) {
-        request.log.error?.(
+        console.log(
           { clientIp, count: current.count },
           "Rate limit exceeded in botCheck"
         );
