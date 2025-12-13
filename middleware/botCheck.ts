@@ -74,7 +74,7 @@ export async function botCheck(
     SUSPICIOUS_USER_AGENT_PATTERNS.some((re) => re.test(userAgent)) ||
     (!accept && !contentType)
   ) {
-    request.log.warn(
+    console.log(
       { clientIp, userAgent, accept, contentType },
       "Blocked suspicious client (UA / missing headers)"
     );
@@ -98,7 +98,7 @@ export async function botCheck(
     } else {
       current.count += 1;
       if (current.count > IP_MAX_REQUESTS) {
-        request.log.error(
+        console.log(
           { clientIp, count: current.count },
           "Rate limit exceeded in botCheck"
         );
@@ -112,29 +112,29 @@ export async function botCheck(
   }
 
   // 3) Shared-secret header check (existing behaviour you already had)
-  const headerToken = request.headers["x-bot-check"];
-  const secret = process.env.BOT_SECRET;
+  // const headerToken = request.headers["x-bot-check"];
+  // const secret = process.env.BOT_SECRET;
 
-  if (!secret) {
-    // If BOT_SECRET is not set we only rely on IP / UA checks.
-    request.log.warn(
-      { clientIp },
-      "BOT_SECRET is not set. botCheck only uses IP / UA checks."
-    );
-    return;
-  }
+  // if (!secret) {
+  //   // If BOT_SECRET is not set we only rely on IP / UA checks.
+  //   request.log.warn(
+  //     { clientIp },
+  //     "BOT_SECRET is not set. botCheck only uses IP / UA checks."
+  //   );
+  //   return;
+  // }
 
-  if (!headerToken || headerToken !== secret) {
-    request.log.warn(
-      { clientIp },
-      "Bot check failed: X-Bot-Check header missing or invalid"
-    );
-    reply.code(403).send({
-      error: "Forbidden",
-      message: "Bot check failed",
-    });
-    return;
-  }
+  // if (!headerToken || headerToken !== secret) {
+  //   request.log.warn(
+  //     { clientIp },
+  //     "Bot check failed: X-Bot-Check header missing or invalid"
+  //   );
+  //   reply.code(403).send({
+  //     error: "Forbidden",
+  //     message: "Bot check failed",
+  //   });
+  //   return;
+  // }
 
   // If we get here, the request is allowed to continue
 }
