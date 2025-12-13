@@ -1,6 +1,18 @@
+import { PLAN_VALUES } from "@/constant/data";
 import { Document } from "mongoose";
 
-export type PlanType = "free" | "pro" | "team";
+export interface EmailModelType extends Document {
+  mailId: string;
+  email: string;
+  picture: string;
+}
+
+export interface GoogleMailType extends EmailModelType {
+  accessToken: string | null;
+  refreshToken: string | null;
+  expiryDate: Date | null;
+  scope: string | null;
+}
 
 export interface UserModelType extends Document {
   name: string;
@@ -8,14 +20,8 @@ export interface UserModelType extends Document {
   address: string | null;
   avatar: string | null;
   mails: {
-    google?: EmailSubdoc | null;
-    microsoft?: EmailSubdoc | null;
+    google?: GoogleMailType | null;
+    microsoft?: EmailModelType | null;
   };
-  plan: PlanType;
-}
-
-export interface EmailModelType extends Document {
-  mailId: string;
-  email: string;
-  picture?: string;
+  plan: (typeof PLAN_VALUES)[keyof typeof PLAN_VALUES];
 }

@@ -1,21 +1,28 @@
 // src/server.ts
-import fastify from "fastify";
+import fastify, { FastifyReply, FastifyRequest } from "fastify";
 import cors from "@fastify/cors";
 import cookie from "@fastify/cookie";
 import jwt from "@fastify/jwt";
-import * as dotenv from "dotenv";
 import { connectDB } from "@/config/db.js";
 import { authRoutes } from "@/routes/auth.js";
 import { emailRoutes } from "@/routes/email.js";
 import { aiRoutes } from "@/routes/ai.js";
 import { taskRoutes } from "@/routes/task.js";
-
-dotenv.config();
+import { labelRoutes } from "@/routes/label.route";
+import {
+  COOKIE_SECRET,
+  FRONTEND_URL,
+  JWT_SECRET,
+  MONGODB_URI,
+  PORT,
+} from "@/lib/env";
+import { JwtPayload } from "@/types/token";
+import { METHOD_VALUES } from "./constant/data";
 
 async function start() {
   const app = fastify({
-    logger: true,
-    trustProxy: true,
+    logger: false,
+    trustProxy: false,
     bodyLimit: 1048576,
   });
 
@@ -23,15 +30,15 @@ async function start() {
   app.get("/health", async () => {
     return { status: "ok", uptime: process.uptime() };
   });
+
   // Register cookie plugin (for httpOnly cookies)
   await app.register(cookie, {
-    secret:
-      process.env.COOKIE_SECRET || "your-cookie-secret-change-in-production",
+    secret: COOKIE_SECRET,
   });
 
   // Register JWT plugin (for signing tokens)
   await app.register(jwt, {
-    secret: process.env.JWT_SECRET || "your-jwt-secret-change-in-production",
+    secret: JWT_SECRET,
     cookie: {
       cookieName: "access_token",
       signed: false,
@@ -39,12 +46,25 @@ async function start() {
   });
 
   await app.register(cors, {
-    origin: [process.env.FRONTEND_URL || "http://localhost:3000"],
-    methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    origin: [FRONTEND_URL],
+    methods: Object.values(METHOD_VALUES),
     credentials: true,
   });
 
-  const mongoUri = process.env.MONGODB_URI;
+  app.decorate(
+    "authenticate",
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      try {
+        const decoded = await request.jwtVerify<JwtPayload>();
+        request.user = decoded;
+      } catch (err) {
+        request.log.warn({ err }, "JWT verification failed");
+        return reply.code(401).send({ error: "Unauthorized" });
+      }
+    }
+  );
+
+  const mongoUri = MONGODB_URI;
   if (!mongoUri) {
     console.error("MONGODB_URI is not set in .env");
     process.exit(1);
@@ -55,10 +75,11 @@ async function start() {
   // Route registration with prefixes
   app.register(authRoutes, { prefix: "/auth" });
   app.register(emailRoutes, { prefix: "/emails" });
+  app.register(labelRoutes, { prefix: "/labels" });
   app.register(aiRoutes, { prefix: "/ai" });
   app.register(taskRoutes, { prefix: "/tasks" });
 
-  const port = Number(process.env.PORT) || 4000;
+  const port = PORT;
   const host = "0.0.0.0";
 
   await app.listen({ port, host });

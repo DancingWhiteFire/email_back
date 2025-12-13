@@ -2,7 +2,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { botCheck } from "@/middleware/botCheck.js";
-import { validateBody } from "@/middleware/validation.js";
+import { validateBody } from "@/middleware/validation.middleware.js";
 
 const summarizeSchema = z.object({
   text: z.string().min(1),
@@ -18,12 +18,11 @@ export async function aiRoutes(fastify: FastifyInstance) {
   fastify.post(
     "/summarize",
     {
-      preHandler: [botCheck, validateBody(summarizeSchema)],
+      preHandler: [botCheck],
     },
     async (request, reply) => {
       const { text } = request.body as z.infer<typeof summarizeSchema>;
 
-      // TODO: call OpenAI or other LLM here
       const fakeSummary = text.slice(0, 120) + "... (summary)";
 
       reply.send({ summary: fakeSummary });
@@ -34,14 +33,13 @@ export async function aiRoutes(fastify: FastifyInstance) {
   fastify.post(
     "/draft",
     {
-      preHandler: [botCheck, validateBody(draftSchema)],
+      preHandler: [botCheck],
     },
     async (request, reply) => {
       const { threadContext, tone } = request.body as z.infer<
         typeof draftSchema
       >;
 
-      // TODO: call OpenAI or other LLM here
       const fakeDraft = `[${tone}] Thanks for your email. Here is a placeholder draft reply based on: ${threadContext.slice(
         0,
         80

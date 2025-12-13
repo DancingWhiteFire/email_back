@@ -3,7 +3,7 @@ import type { FastifyInstance } from "fastify";
 import { Types } from "mongoose";
 import { z } from "zod";
 import { botCheck } from "@/middleware/botCheck.js";
-import { validateBody } from "@/middleware/validation.js";
+import { validateBody } from "@/middleware/validation.middleware.js";
 import { Task } from "@/models/task.js";
 
 const createTaskFromEmailSchema = z.object({
@@ -40,7 +40,7 @@ export async function taskRoutes(fastify: FastifyInstance) {
   fastify.post(
     "/from-email/:emailId",
     {
-      preHandler: [botCheck, validateBody(createTaskFromEmailSchema)],
+      preHandler: [botCheck],
     },
     async (request, reply) => {
       const { emailId } = request.params as { emailId: string };
@@ -68,7 +68,7 @@ export async function taskRoutes(fastify: FastifyInstance) {
   fastify.patch(
     "/:id",
     {
-      preHandler: [botCheck, validateBody(updateTaskSchema)],
+      preHandler: [botCheck],
     },
     async (request, reply) => {
       const { id } = request.params as { id: string };
