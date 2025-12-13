@@ -7,12 +7,12 @@ import {
   createGoogleOAuthClient,
   getUserGmailClient,
 } from "@/config/googleClient";
-import { validateBody } from "@/middleware/validation.middleware";
+// import { validateBody } from "@/middleware/validation.middleware";
 import { User } from "@/models/user";
 import { mapGmailMessageToEmail } from "@/helper/google";
 import { JwtPayload } from "@/types/token";
 import { attachClientInfo } from "@/middleware/ipdetect.middleware";
-import fs from "fs/promises";
+// import fs from "fs/promises";
 
 export async function emailRoutes(fastify: FastifyInstance) {
   // Ensure user is authenticated (assumes you already have this decorator)

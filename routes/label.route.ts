@@ -6,7 +6,7 @@ import { User } from "@/models/user";
 import { Label } from "@/models/label";
 import { JwtPayload } from "@/types/token";
 import { attachClientInfo } from "@/middleware/ipdetect.middleware";
-import fs from "fs/promises";
+// import fs from "fs/promises";
 
 import { z } from "zod";
 import { validateBody } from "@/middleware/validation.middleware";
@@ -187,11 +187,11 @@ export async function labelRoutes(fastify: FastifyInstance) {
       const res = await gmail.users.labels.list({
         userId: "me",
       });
-      await fs.writeFile(
-        "label-get-messages.json", // path on server
-        JSON.stringify(res, null, 2), // pretty JSON
-        "utf-8"
-      );
+      // await fs.writeFile(
+      //   "label-get-messages.json", // path on server
+      //   JSON.stringify(res, null, 2), // pretty JSON
+      //   "utf-8"
+      // );
       return res.data.labels;
     }
   );
@@ -231,11 +231,11 @@ export async function labelRoutes(fastify: FastifyInstance) {
             : {}),
         },
       });
-      await fs.writeFile(
-        "label-create-messages.json", // path on server
-        JSON.stringify(createLabel, null, 2), // pretty JSON
-        "utf-8"
-      );
+      // await fs.writeFile(
+      //   "label-create-messages.json", // path on server
+      //   JSON.stringify(createLabel, null, 2), // pretty JSON
+      //   "utf-8"
+      // );
       return reply.send({ messages: createLabel });
     }
   );
@@ -280,11 +280,11 @@ export async function labelRoutes(fastify: FastifyInstance) {
             : {}),
         },
       });
-      await fs.writeFile(
-        "label-update-messages.json", // path on server
-        JSON.stringify(updateLabel, null, 2), // pretty JSON
-        "utf-8"
-      );
+      // await fs.writeFile(
+      //   "label-update-messages.json", // path on server
+      //   JSON.stringify(updateLabel, null, 2), // pretty JSON
+      //   "utf-8"
+      // );
       return reply.send({ messages: updateLabel });
     }
   );
@@ -309,11 +309,11 @@ export async function labelRoutes(fastify: FastifyInstance) {
         userId: "me",
         id: label.labelId,
       });
-      await fs.writeFile(
-        "label-delete-messages.json", // path on server
-        JSON.stringify(deleteLabel, null, 2), // pretty JSON
-        "utf-8"
-      );
+      // await fs.writeFile(
+      //   "label-delete-messages.json", // path on server
+      //   JSON.stringify(deleteLabel, null, 2), // pretty JSON
+      //   "utf-8"
+      // );
       return reply.send({ messages: deleteLabel });
     }
   );
