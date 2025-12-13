@@ -3,11 +3,11 @@ import fastify, { FastifyReply, FastifyRequest } from "fastify";
 import cors from "@fastify/cors";
 import cookie from "@fastify/cookie";
 import jwt from "@fastify/jwt";
-import { connectDB } from "@/config/db.js";
-import { authRoutes } from "@/routes/auth.js";
-import { emailRoutes } from "@/routes/email.js";
-import { aiRoutes } from "@/routes/ai.js";
-import { taskRoutes } from "@/routes/task.js";
+import { connectDB } from "@/config/db";
+import { authRoutes } from "@/routes/auth";
+import { emailRoutes } from "@/routes/email";
+import { aiRoutes } from "@/routes/ai";
+import { taskRoutes } from "@/routes/task";
 import { labelRoutes } from "@/routes/label.route";
 import {
   COOKIE_SECRET,
@@ -17,7 +17,7 @@ import {
   PORT,
 } from "@/lib/env";
 import { JwtPayload } from "@/types/token";
-import { METHOD_VALUES } from "./constant/data";
+import { METHOD_VALUES } from "@/constant/data";
 
 async function start() {
   const app = fastify({
