@@ -26,6 +26,7 @@ export async function authRoutes(fastify: FastifyInstance) {
       let user = await User.findOne({
         "mails.google.email": googleUser.email,
       });
+      console.log("Google user info:", user);
       if (!user) {
         user = await User.create({
           name: googleUser.name,
