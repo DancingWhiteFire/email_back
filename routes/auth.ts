@@ -160,6 +160,7 @@ export async function authRoutes(fastify: FastifyInstance) {
     "/logout",
     { preHandler: [attachClientInfo] },
     async (request, reply) => {
+      console.log("logout");
       reply.clearCookie("access_token", {
         path: "/",
         httpOnly: true,
