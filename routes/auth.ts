@@ -157,7 +157,7 @@ export async function authRoutes(fastify: FastifyInstance) {
   // 4) Logout endpoint
   fastify.post(
     "/logout",
-    { preHandler: [fastify.authenticate, attachClientInfo] },
+    { preHandler: [attachClientInfo] },
     async (request, reply) => {
       reply.clearCookie("access_token", {
         path: "/",
