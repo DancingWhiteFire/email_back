@@ -1,4 +1,3 @@
-// src/routes/emails.ts
 import type { FastifyInstance } from "fastify";
 import { botCheck } from "@/middleware/botCheck.js";
 import { getUserGmailClient } from "@/config/googleClient";
@@ -132,11 +131,9 @@ export const createLabelSchema = z
   .object({
     labelName: z.string().trim().min(1, "labelName is required").max(225),
 
-    // body can be strings -> keep as string, just validate format
     textColor: gmailPaletteColor.optional(),
     backgroundColor: gmailPaletteColor.optional(),
 
-    // optional controls (if you want to expose them)
     labelListVisibility: z
       .enum(["labelShow", "labelHide", "labelShowIfUnread"])
       .default("labelShow"),
@@ -150,11 +147,9 @@ export const updateLabelSchema = z
     _id: z.string(),
     labelName: z.string().trim().min(1, "labelName is required").max(225),
 
-    // body can be strings -> keep as string, just validate format
     textColor: gmailPaletteColor.optional(),
     backgroundColor: gmailPaletteColor.optional(),
 
-    // optional controls (if you want to expose them)
     labelListVisibility: z
       .enum(["labelShow", "labelHide", "labelShowIfUnread"])
       .default("labelShow"),
@@ -219,7 +214,6 @@ export async function labelRoutes(fastify: FastifyInstance) {
 
       const gmail = await getUserGmailClient(user);
 
-      // 1) List message IDs
       const createLabel = await gmail.users.labels.create({
         userId: "me",
         requestBody: {
@@ -267,7 +261,6 @@ export async function labelRoutes(fastify: FastifyInstance) {
       const label = await Label.findById(_id);
       if (!label) return reply.code(404).send({ error: "Label not found" });
 
-      // 1) List message IDs
       const updateLabel = await gmail.users.labels.update({
         userId: "me",
         requestBody: {
@@ -304,7 +297,6 @@ export async function labelRoutes(fastify: FastifyInstance) {
       const label = await Label.findById(_id);
       if (!label) return reply.code(404).send({ error: "Label not found" });
 
-      // 1) List message IDs
       const deleteLabel = await gmail.users.labels.delete({
         userId: "me",
         id: label.labelId,

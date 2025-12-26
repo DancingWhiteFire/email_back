@@ -1,21 +1,41 @@
-// src/routes/emails.ts
 import type { FastifyInstance } from "fastify";
-import { Types } from "mongoose";
+import fs from "fs/promises";
+import { google } from "googleapis";
+import { GoogleGenAI } from "@google/genai";
+
 import { Email } from "@/models/email.js";
+import { User } from "@/models/user";
+
 import { botCheck } from "@/middleware/botCheck.js";
+import { attachClientInfo } from "@/middleware/ipdetect.middleware";
+
 import {
   createGoogleOAuthClient,
   getUserGmailClient,
 } from "@/config/googleClient";
 // import { validateBody } from "@/middleware/validation.middleware";
-import { User } from "@/models/user";
-import { mapGmailMessageToEmail } from "@/helper/google";
+import { mapGmailMessageToEmail, getGmailMessage } from "@/helper/google";
 import { JwtPayload } from "@/types/token";
-import { attachClientInfo } from "@/middleware/ipdetect.middleware";
-// import fs from "fs/promises";
+import { OPENAI_KEY, FRONTEND_URL } from "@/lib/env";
+
+const ai = new GoogleGenAI({ apiKey: OPENAI_KEY });
+
+const decodePubSubData = (dataB64url: string) => {
+  const b64 = dataB64url.replace(/-/g, "+").replace(/_/g, "/");
+  const padded = b64 + "===".slice((b64.length + 3) % 4);
+  return JSON.parse(Buffer.from(padded, "base64").toString("utf8"));
+};
+const extractJson = (text: string) => {
+  const unfenced = text
+    .replace(/```(?:json)?\s*([\s\S]*?)\s*```/i, "$1")
+    .trim();
+
+  const m = unfenced.match(/\{[\s\S]*\}/);
+  if (!m) throw new Error("No JSON object found in model output");
+  return JSON.parse(m[0]);
+};
 
 export async function emailRoutes(fastify: FastifyInstance) {
-  // Ensure user is authenticated (assumes you already have this decorator)
   fastify.get(
     "/google/prepare/oauth",
     { preHandler: [fastify.authenticate] },
@@ -45,6 +65,50 @@ export async function emailRoutes(fastify: FastifyInstance) {
   );
 
   fastify.get(
+    "/google/callback",
+    { preHandler: [fastify.authenticate] },
+    async (req, reply) => {
+      const { code } = req.query as { code?: string };
+
+      if (!code) return reply.code(400).send({ error: "Missing code" });
+      console.log(req.query, req.user);
+      const user = await User.findById((req.user as { userId: string }).userId);
+      if (!user) return reply.code(401).send({ error: "User not found" });
+
+      const oauth2Client = createGoogleOAuthClient();
+
+      const { tokens } = await oauth2Client.getToken(code);
+      oauth2Client.setCredentials(tokens);
+
+      const oauth2 = google.oauth2({ auth: oauth2Client, version: "v2" });
+      const { data: profile } = await oauth2.userinfo.get();
+      const people = google.people({ version: "v1", auth: oauth2Client });
+
+      const res = await people.people.get({
+        resourceName: "people/me",
+        personFields: "birthdays,addresses,locales,photos,names",
+      });
+      console.log("Google profile:", profile);
+      console.log("Google people API data:", res.data);
+      if (user.mails?.["google"]) {
+        user.mails.google.accessToken = tokens.access_token!;
+        user.mails.google.refreshToken = tokens.refresh_token!;
+        user.mails.google.expiryDate = tokens.expiry_date
+          ? new Date(tokens.expiry_date)
+          : null;
+        user.mails.google.scope = tokens.scope!;
+        await user.save();
+      } else {
+        return reply
+          .code(500)
+          .send({ error: "Google mail information not found for user." });
+      }
+
+      reply.redirect(`${FRONTEND_URL}/settings?gmail=connected`);
+    }
+  );
+
+  fastify.get(
     "/gmail",
     { preHandler: [fastify.authenticate, botCheck, attachClientInfo] },
     async (request, reply) => {
@@ -52,40 +116,24 @@ export async function emailRoutes(fastify: FastifyInstance) {
       const user = await User.findById(authUser.userId);
       if (!user) return reply.code(401).send({ error: "User not found" });
 
-      const { pageToken } = request.body as { pageToken?: string };
+      // const { pageToken } = request.body as { pageToken?: string };
 
       const gmail = await getUserGmailClient(user);
-      // 1) List message IDs
       const listRes = await gmail.users.messages.list({
         userId: "me",
         maxResults: 20,
         q: "in:trash",
-        ...(pageToken ? { pageToken } : {}),
+        // ...(pageToken ? { pageToken } : {}),
       });
       console.log(listRes.data);
       const messages = listRes.data.messages ?? [];
       if (!messages.length) return reply.send({ messages: [] });
-      // 2) Fetch full message for each ID
       const fullMessages = await Promise.all(
-        messages.map((m) =>
-          gmail.users.messages.get({
-            userId: "me",
-            id: m.id!,
-            format: "full",
-          })
-        )
+        messages.map(async (m) => await getGmailMessage(gmail, m.id!))
       );
-      // await fs.writeFile(
-      //   "gmail-messages.json", // path on server
-      //   JSON.stringify(fullMessages, null, 2), // pretty JSON
-      //   "utf-8"
-      // );
-      // 3) Normalize & optionally save to Mongo
       const normalized = fullMessages.map((m) =>
         mapGmailMessageToEmail(user._id, m.data)
       );
-
-      // Upsert into Mongo (optional)
       await Email.bulkWrite(
         normalized.map((n) => ({
           updateOne: {
@@ -116,102 +164,163 @@ export async function emailRoutes(fastify: FastifyInstance) {
               "projects/caramel-dialect-480214-k3/topics/gmail-notifications",
           },
         });
-        console.log("Watch request successfully created:", response.data);
+        user.mails.google!.lastHistoryId = String(response.data.historyId);
+        await user.save();
         return response.data;
       } catch (error) {
         console.error("Error setting up watch:", error);
       }
     }
   );
-  // GET /emails?status=inbox
-  fastify.get("/", { preHandler: [botCheck] }, async (request, reply) => {
-    const query = request.query as { status?: string; userId?: string };
-    const status = query.status ?? "inbox";
-    const userId = query.userId;
-
-    if (!userId || !Types.ObjectId.isValid(userId)) {
-      reply.code(400).send({ error: "userId is required and must be valid" });
-      return;
-    }
-
-    const emails = await Email.find({ userId, status }).sort({
-      receivedAt: -1,
-    });
-
-    reply.send(emails);
-  });
 
   fastify.post("/gmail/push", async (request, reply) => {
-    // Optional: verify Pub/Sub OIDC token if you configured it on the subscription
-    // If you didn't configure OIDC, set PUBSUB_OIDC_AUDIENCE empty and skip.
-    // const ok = await verifyPubSubOidcIfConfigured(request.headers);
-    // if (!ok) return reply.code(401).send({ error: "Invalid Pub/Sub auth" });
+    const body: any = request.body;
 
-    const { emailAddress, historyId } = request.body as any;
+    let emailAddress = body?.emailAddress;
+    let historyId = body?.historyId;
 
     if (!emailAddress || !historyId) {
-      return reply.code(400).send({ error: "Bad Pub/Sub message" });
-    }
-    console.log(request.body);
+      const data = body?.message?.data;
+      if (!data) return reply.code(400).send({ error: "Missing message.data" });
 
-    // Ack fast (Pub/Sub retries if you are slow / error)
+      const payload = decodePubSubData(data);
+      emailAddress = payload?.emailAddress;
+      historyId = payload?.historyId;
+    }
+
+    if (!emailAddress || !historyId)
+      return reply.code(400).send({ error: "Bad Gmail notification payload" });
+
     reply.code(204).send();
+
+    try {
+      const user = await User.findOne({ "mails.google.email": emailAddress });
+      if (!user?.mails?.google) return;
+
+      const gmail = await getUserGmailClient(user);
+
+      const notifHistoryId = String(historyId);
+      const startHistoryId = String(
+        user.mails.google.lastHistoryId || historyId
+      );
+
+      const newMessageIds = new Set<string>();
+      let latestHistoryId: string | undefined;
+
+      const histRes = await gmail.users.history.list({
+        userId: "me",
+        startHistoryId,
+        historyTypes: ["messageAdded"],
+      });
+
+      // await fs.writeFile(
+      //   `history-gmail-${startHistoryId}.json`,
+      //   JSON.stringify(histRes.data, null, 2),
+      //   "utf-8"
+      // );
+      latestHistoryId = String(
+        histRes.data.historyId || latestHistoryId || notifHistoryId
+      );
+
+      const history = histRes.data.history || [];
+      for (const h of history) {
+        for (const added of h.messagesAdded || []) {
+          const msg = added.message;
+          if (!msg?.id) continue;
+
+          const labels = msg.labelIds || [];
+          const isDraft = labels.includes("DRAFT");
+          if (!isDraft) newMessageIds.add(msg.id);
+        }
+      }
+
+      user.mails.google.lastHistoryId = latestHistoryId || notifHistoryId;
+      await user.save();
+
+      if (newMessageIds.size) {
+        const ids = [...newMessageIds];
+
+        for (const id of ids) {
+          const msgRes = await getGmailMessage(gmail, id);
+          await fs.writeFile(
+            `history-gmail-${startHistoryId}-message-${id}.json`,
+            JSON.stringify(
+              mapGmailMessageToEmail(user._id, msgRes.data),
+              null,
+              2
+            ),
+            "utf-8"
+          );
+          const { sender, subject, snippet } = mapGmailMessageToEmail(
+            user._id,
+            msgRes.data
+          );
+          const system = `When an email is received, the system analyzes its content and assigns labels automatically. Possible labels include Notification, Response, Social, Job, Call Schedule, Reject, etc. The system can return one or multiple labels, but only the most relevant ones.`;
+
+          const prompt = `From: ${sender ?? ""} Subject: ${
+            subject ?? ""
+          } Snippet: ${snippet ?? ""} return only labels.`;
+          const res = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: [
+              { role: "user", parts: [{ text: system + "\n" + prompt }] },
+            ],
+          });
+          const text: string =
+            res?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+
+          // await fs.writeFile(
+          //   `history-gmail-${startHistoryId}-message-${id}-ai.json`,
+          //   JSON.stringify(res, null, 2),
+          //   "utf-8"
+          // );
+          // let labels: string[] = [];
+          // const obj = extractJson(text);
+          // if (Array.isArray(obj?.labels)) labels = obj.labels.map(String);
+          console.log(text);
+        }
+      }
+    } catch (err: any) {
+      if (err?.code === 404 || err?.response?.status === 404) {
+        const user = await User.findOne({ "mails.google.email": emailAddress });
+        if (user?.mails?.google) {
+          user.mails.google.lastHistoryId = String(historyId);
+          await user.save();
+        }
+        return;
+      }
+
+      console.log("gmail push processing error:", err);
+    }
   });
 
-  // POST /emails/:id/archive
-  fastify.post(
-    "/:id/archive",
-    { preHandler: [botCheck] },
-    async (request, reply) => {
-      const { id } = request.params as { id: string };
-      const email = await Email.findByIdAndUpdate(
-        id,
-        { status: "archived" },
-        { new: true }
-      );
-      if (!email) {
-        reply.code(404).send({ error: "Email not found" });
-        return;
-      }
-      reply.send(email);
-    }
-  );
+  fastify.post("/gmail/ai", async (request, reply) => {
+    const { from, subject, snippet } = request.body as {
+      from?: string;
+      subject?: string;
+      snippet?: string;
+    };
+    const system = `When an email is received, the system analyzes its content and assigns labels automatically. Possible labels include Notification, Response, Social, Job, Call Schedule, Reject, etc. The system can return one or multiple labels, but only the most relevant ones.`;
 
-  // POST /emails/:id/delete
-  fastify.post(
-    "/:id/delete",
-    { preHandler: [botCheck] },
-    async (request, reply) => {
-      const { id } = request.params as { id: string };
-      const email = await Email.findByIdAndUpdate(
-        id,
-        { status: "deleted" },
-        { new: true }
-      );
-      if (!email) {
-        reply.code(404).send({ error: "Email not found" });
-        return;
-      }
-      reply.send(email);
-    }
-  );
+    const prompt = `From: ${from ?? ""} Subject: ${subject ?? ""} Snippet: ${
+      snippet ?? ""
+    } Return JSON only.`;
+    const res = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: [{ role: "user", parts: [{ text: system + "\n" + prompt }] }],
+    });
+    const text: string = res?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
 
-  // POST /emails/:id/pin
-  fastify.post(
-    "/:id/pin",
-    { preHandler: [botCheck] },
-    async (request, reply) => {
-      const { id } = request.params as { id: string };
-      const email = await Email.findByIdAndUpdate(
-        id,
-        { status: "pinned" },
-        { new: true }
-      );
-      if (!email) {
-        reply.code(404).send({ error: "Email not found" });
-        return;
-      }
-      reply.send(email);
+    await fs.writeFile("ai.json", JSON.stringify(res, null, 2), "utf-8");
+
+    let labels: string[] = [];
+    try {
+      const obj = extractJson(text);
+      if (Array.isArray(obj?.labels)) labels = obj.labels.map(String);
+    } catch (e) {
+      labels = ["Notification"];
     }
-  );
+    console.log("ai test", labels);
+    reply.code(200).send(labels);
+  });
 }

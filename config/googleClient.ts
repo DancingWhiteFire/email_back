@@ -18,7 +18,7 @@ export const verifyGoogleIdToken = async (idToken: string) => {
   }
 
   return {
-    googleId: payload.sub, // unique per Google user
+    googleId: payload.sub,
     email: payload.email,
     name: payload.name,
     picture: payload.picture,
@@ -47,7 +47,6 @@ export async function getUserGmailClient(
     refresh_token: user.mails.google?.refreshToken ?? null,
   });
 
-  // Automatically refresh tokens when expired
   oauth2Client.on("tokens", async (tokens) => {
     if (tokens.access_token)
       user.mails.google!.accessToken = tokens.access_token;

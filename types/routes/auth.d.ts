@@ -1,5 +1,5 @@
 interface GoogleLoginBodyType {
-  credential: string; // ID token from GIS
+  credential: string;
 }
 
 export { GoogleLoginBodyType };

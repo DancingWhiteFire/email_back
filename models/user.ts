@@ -1,4 +1,3 @@
-// src/models/User.ts
 import { Schema, model } from "mongoose";
 import {
   UserModelType,
@@ -6,26 +5,26 @@ import {
   GoogleMailType,
 } from "@/types/models/user";
 import { PLAN_VALUES } from "@/constant/data";
-// Reusable email schema (Microsoft / generic email account)
+
 const emailSchema = new Schema<EmailModelType>(
   {
-    mailId: { type: String, required: true, unique: true },
+    mailId: { type: String, required: true },
     email: { type: String, required: true },
     picture: { type: String, default: null },
   },
   { _id: false }
 );
 
-// Google mail schema (extends EmailModelType with tokens, expiry, scope)
 const googleMailSchema = new Schema<GoogleMailType>(
   {
-    mailId: { type: String, required: true, unique: true },
-    email: { type: String, required: true, unique: true },
+    mailId: { type: String, required: true },
+    email: { type: String, required: true },
     picture: { type: String, default: null },
     accessToken: { type: String, default: null },
     refreshToken: { type: String, default: null },
     expiryDate: { type: Date, default: null },
     scope: { type: String, default: null },
+    lastHistoryId: { type: String, default: null },
   },
   { _id: false }
 );

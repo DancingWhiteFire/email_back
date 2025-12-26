@@ -1,4 +1,3 @@
-// src/routes/ai.ts
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { botCheck } from "@/middleware/botCheck.js";
@@ -14,7 +13,6 @@ const draftSchema = z.object({
 });
 
 export async function aiRoutes(fastify: FastifyInstance) {
-  // POST /ai/summarize
   fastify.post(
     "/summarize",
     {
@@ -29,7 +27,6 @@ export async function aiRoutes(fastify: FastifyInstance) {
     }
   );
 
-  // POST /ai/draft
   fastify.post(
     "/draft",
     {

@@ -1,4 +1,3 @@
-// src/models/User.ts
 import mongoose, { Schema, model } from "mongoose";
 import { LabelModelType } from "@/types/models/label";
 

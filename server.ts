@@ -26,17 +26,14 @@ async function start() {
     bodyLimit: 1048576,
   });
 
-  // Health check
   app.get("/health", async () => {
     return { status: "ok", uptime: process.uptime() };
   });
 
-  // Register cookie plugin (for httpOnly cookies)
   await app.register(cookie, {
     secret: COOKIE_SECRET,
   });
 
-  // Register JWT plugin (for signing tokens)
   await app.register(jwt, {
     secret: JWT_SECRET,
     cookie: {
@@ -72,7 +69,6 @@ async function start() {
 
   await connectDB(mongoUri);
 
-  // Route registration with prefixes
   app.register(authRoutes, { prefix: "/auth" });
   app.register(emailRoutes, { prefix: "/emails" });
   app.register(labelRoutes, { prefix: "/labels" });

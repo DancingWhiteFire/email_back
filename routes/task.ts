@@ -1,4 +1,3 @@
-// src/routes/tasks.ts
 import type { FastifyInstance } from "fastify";
 import { Types } from "mongoose";
 import { z } from "zod";
@@ -21,7 +20,6 @@ const updateTaskSchema = z.object({
 });
 
 export async function taskRoutes(fastify: FastifyInstance) {
-  // GET /tasks?ownerId=...
   fastify.get("/", { preHandler: [botCheck] }, async (request, reply) => {
     const query = request.query as { ownerId?: string };
     if (!query.ownerId || !Types.ObjectId.isValid(query.ownerId)) {
@@ -36,7 +34,6 @@ export async function taskRoutes(fastify: FastifyInstance) {
     reply.send(tasks);
   });
 
-  // POST /tasks/from-email/:emailId
   fastify.post(
     "/from-email/:emailId",
     {
@@ -64,7 +61,6 @@ export async function taskRoutes(fastify: FastifyInstance) {
     }
   );
 
-  // PATCH /tasks/:id
   fastify.patch(
     "/:id",
     {
@@ -94,7 +90,6 @@ export async function taskRoutes(fastify: FastifyInstance) {
     }
   );
 
-  // DELETE /tasks/:id
   fastify.delete("/:id", { preHandler: [botCheck] }, async (request, reply) => {
     const { id } = request.params as { id: string };
     if (!Types.ObjectId.isValid(id)) {

@@ -1,4 +1,3 @@
-// src/models/Email.ts
 import { Schema, model, Document, Types } from "mongoose";
 
 export interface IEmail extends Document {

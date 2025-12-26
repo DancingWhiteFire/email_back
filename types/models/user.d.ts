@@ -12,6 +12,7 @@ export interface GoogleMailType extends EmailModelType {
   refreshToken: string | null;
   expiryDate: Date | null;
   scope: string | null;
+  lastHistoryId: string | null;
 }
 
 export interface UserModelType extends Document {

@@ -9,12 +9,13 @@ const envSchema = z.object({
   COOKIE_SECRET: z.string().default("your-cookie-secret-change-in-production"),
   JWT_SECRET: z.string().default("your-jwt-secret-change-in-production"),
   FRONTEND_URL: z.string().default("http://localhost:3000"),
-  BACKEND_URL: z.string().default("http://localhost:4000"),
+  BACKEND_URL: z.string().default(" https://14e2e389e217.ngrok-free.app"),
   MONGODB_URI: z.string().optional(),
   PORT: z
     .string()
     .transform((val) => parseInt(val, 10))
     .default("4000"),
+  OPENAI_KEY: z.string(),
 });
 
 const env = envSchema.parse(process.env);
@@ -27,6 +28,7 @@ const FRONTEND_URL = env.FRONTEND_URL;
 const BACKEND_URL = env.BACKEND_URL;
 const MONGODB_URI = env.MONGODB_URI;
 const PORT = env.PORT;
+const OPENAI_KEY = env.OPENAI_KEY;
 
 if (!GOOGLE_CLIENT_ID) {
   throw new Error("GOOGLE_CLIENT_ID is not set in environment variables");
@@ -45,4 +47,5 @@ export {
   BACKEND_URL,
   MONGODB_URI,
   PORT,
+  OPENAI_KEY,
 };
